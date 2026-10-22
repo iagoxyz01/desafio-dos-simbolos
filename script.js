@@ -86,7 +86,7 @@ function buildPhase() {
       [{s:a,n:3},{op:"="},{v:av*3}],
       [{s:a,n:1},{op:"+"},{s:b,n:2},{op:"="},{v:av+2*bv}],
       [{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{v:bv+cv}],
-      [{s:a,n:1},{op:"+"},{s:b,n:bCount},{op:"="},{v:answer}]
+      [{s:a,n:1},{op:"+"},{s:b,n:bCount},{op:"="},{unknown:true}]
     ],
     symbols: {a,b,c}, values: {a:av,b:bv,c:cv}, trick: {symbol:b,count:bCount}
   };
@@ -117,6 +117,10 @@ function renderEquation(parts) {
     } else if (part.op) {
       span.className = "equals";
       span.textContent = part.op;
+    } else if (part.unknown) {
+      span.textContent = "?";
+      span.className = "unknown-value";
+      span.setAttribute("aria-label", "resultado desconhecido");
     } else {
       span.textContent = String(part.v);
     }
