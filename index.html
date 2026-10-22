@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Desafio dos Símbolos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">∑</span><div><strong>DESAFIO DOS SÍMBOLOS</strong><small>Lógica matemática em equipe</small></div></div>
+      <button id="rankingTop" class="button button-ghost">🏆 Ranking</button>
+    </header>
+
+    <section id="home" class="panel hero">
+      <div class="eyebrow">DESAFIO EM 5 FASES</div>
+      <h1>Use a lógica.<br><span>Descubra os valores.</span></h1>
+      <p>Resolva as equações visuais antes que o tempo acabe. Atenção aos detalhes: cada símbolo importa!</p>
+      <form id="startForm" class="start-form">
+        <label for="teamName">Nome da equipe</label>
+        <input id="teamName" maxlength="35" placeholder="Ex.: Equipe Relâmpago" required autocomplete="organization">
+        <button class="button button-primary" type="submit">Iniciar jogo <span>→</span></button>
+      </form>
+      <div class="rules"><span>⏱ 2 minutos</span><span>🧩 5 fases</span><span>⭐ Até 500 pontos + bônus</span></div>
+    </section>
+
+    <section id="game" class="panel game-panel hidden">
+      <div class="game-head">
+        <div><span class="eyebrow" id="teamLabel">EQUIPE</span><h2 id="phaseTitle">Fase 1 de 5</h2></div>
+        <div class="timer-box"><small>TEMPO RESTANTE</small><strong id="timer">02:00</strong></div>
+      </div>
+      <div class="progress" aria-label="Progresso"><div id="progressBar"></div></div>
+      <p class="instruction">Observe cada linha e descubra o valor dos símbolos. Digite o resultado da última equação.</p>
+      <div id="equations" class="equations"></div>
+      <form id="answerForm" class="answer-form">
+        <label for="answer">Qual é o resultado?</label>
+        <div class="answer-row"><input id="answer" type="number" step="1" placeholder="Sua resposta" required><button class="button button-primary" type="submit">Responder →</button></div>
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+      </form>
+      <div class="game-foot"><span id="phaseScore">Pontuação: 0</span><span>Respostas erradas avançam para a próxima fase.</span></div>
+    </section>
+
+    <section id="result" class="panel result-panel hidden">
+      <div class="result-icon">🏁</div><div class="eyebrow">DESAFIO CONCLUÍDO</div>
+      <h1 id="resultTitle">Muito bem!</h1><p id="resultMessage"></p>
+      <div class="stats"><div><small>PONTOS</small><strong id="finalScore">0</strong></div><div><small>TEMPO GASTO</small><strong id="timeSpent">00:00</strong></div><div><small>ACERTOS</small><strong id="correctCount">0/5</strong></div></div>
+      <p id="saveStatus" class="save-status" aria-live="polite"></p>
+      <div class="result-actions"><button id="playAgain" class="button button-primary">Jogar novamente</button><button id="rankingResult" class="button button-ghost">Ver ranking</button></div>
+    </section>
+
+    <section id="ranking" class="panel ranking-panel hidden">
+      <div class="ranking-head"><div><div class="eyebrow">PLACAR GERAL</div><h2>🏆 Ranking das equipes</h2></div><button id="closeRanking" class="button button-ghost">Voltar</button></div>
+      <p class="muted">Ordenado por pontuação e, em caso de empate, pelo menor tempo.</p>
+      <div id="rankingList"></div>
+      <p id="rankingNote" class="muted"></p>
+    </section>
+    <footer>Desafio dos Símbolos <span>•</span> Feito para aprender brincando</footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
