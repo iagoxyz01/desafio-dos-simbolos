@@ -44,62 +44,61 @@ function formatTime(seconds) {
   return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
 }
 
-// Gera uma equação linear com solução inteira e uma última linha que exige atenção
-// à quantidade de símbolos. Cada partida usa símbolos e valores diferentes.
-function makePhase() {
-  const [a, b, c] = shuffle(SYMBOLS).slice(0, 3);
-  const x = randomInt(2, 10);
-  const y = randomInt(2, 9);
-  const z = randomInt(1, 8);
-  const count = randomInt(2, 4);
-  const target = x + y * 2;
-  const rows = [
-    { parts: [{ symbol: a, n: 3 }, { op: "=" }, { value: x * 3 }] },
-    { parts: [{ symbol: a, n: 1 }, { op: "+" }, { symbol: b, n: 2 }, { op: "=" }, { value: x + 2 * y }] },
-    { parts: [{ symbol: b, n: 1 }, { op: "+" }, { symbol: c, n: 1 }, { op: "=" }, { value: y + z }] },
-    { parts: [{ symbol: a, n: 1 }, { op: "+" }, { symbol: b, n: 1 }, { op: "×" }, { value: 2 }, { op: "=" }, { value: x + 2 * y }] }
-  ];
-  // Última linha visual: usa os valores revelados nas três primeiras relações,
-  // com a precedência multiplicativa explícita no resultado calculado.
-  // A terceira linha fornece c = (y+z)-y = z; a linha final usa a + b × 2.
-  rows[3].parts[rows[3].parts.length - 1].value = x + 2 * y;
-  return {
-    symbols: { a, b, c }, values: { x, y, z },
-    rows,
-    answer: x + 2 * y,
-    // A imagem final altera a quantidade de um símbolo para chamar atenção.
-    trick: { symbol: b, count, answer: x + count * y }
-  };
-}
-
-// As fases são geradas com equações internamente consistentes. A linha final
-// pede a + (quantidade de b × valor de b); as três primeiras linhas permitem
-// encontrar os valores dos símbolos sem depender de conhecimento externo.
+// Monta desafios variados, mas com contas simples e resultados inteiros.
 function buildPhase() {
-  const [a,b,c] = shuffle(SYMBOLS).slice(0,3);
-  const av = randomInt(2,9), bv = randomInt(2,9), cv = randomInt(1,8);
-  const aCount = randomInt(2,4), bCount = randomInt(2,4);
-  const answer = av + bCount * bv;
+  const [a, b, c] = shuffle(SYMBOLS).slice(0, 3);
+  const av = randomInt(2, 6);
+  const bv = randomInt(2, 6);
+  const cv = randomInt(1, 5);
+  const aCount = randomInt(2, 4);
+  const bCount = randomInt(2, 4);
+  const cCount = randomInt(2, 3);
+
+  // Escolhe uma expressão final que sempre usa os três símbolos.
+  // Os parênteses deixam a ordem das operações clara para quem está jogando.
+  const pattern = randomInt(0, 3);
+  let finalParts;
+  let answer;
+
+  if (pattern === 0) {
+    // a + (b × quantidade) + c
+    answer = av + bv * bCount + cv;
+    finalParts = [{s:a,n:1},{op:"+"},{op:"("},{s:b,n:bCount},{op:"×"},{v:1},{op:")"},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
+  } else if (pattern === 1) {
+    // (a × b) + c
+    answer = av * bv + cv;
+    finalParts = [{op:"("},{s:a,n:1},{op:"×"},{s:b,n:1},{op:")"},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
+  } else if (pattern === 2) {
+    // a + b + (c × quantidade)
+    answer = av + bv + cv * cCount;
+    finalParts = [{s:a,n:1},{op:"+"},{s:b,n:1},{op:"+"},{op:"("},{s:c,n:cCount},{op:"×"},{v:1},{op:")"},{op:"="},{unknown:true}];
+  } else {
+    // (a + b) × c
+    answer = (av + bv) * cv;
+    finalParts = [{op:"("},{s:a,n:1},{op:"+"},{s:b,n:1},{op:")"},{op:"×"},{s:c,n:1},{op:"="},{unknown:true}];
+  }
+
   return {
     answer,
     rows: [
-      [{s:a,n:3},{op:"="},{v:av*3}],
+      [{s:a,n:aCount},{op:"="},{v:av*aCount}],
       [{s:a,n:1},{op:"+"},{s:b,n:2},{op:"="},{v:av+2*bv}],
       [{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{v:bv+cv}],
-      [{s:a,n:1},{op:"+"},{s:b,n:bCount},{op:"="},{unknown:true}]
+      finalParts
     ],
-    symbols: {a,b,c}, values: {a:av,b:bv,c:cv}, trick: {symbol:b,count:bCount}
+    symbols: {a,b,c},
+    values: {a:av,b:bv,c:cv}
   };
 }
 function generateGame() {
-  // Evita repetir exatamente a mesma combinação de símbolos entre fases.
   const used = new Set();
   return Array.from({length:5}, () => {
-    let phase = buildPhase(), key = phase.rows.map(row => row.map(p => p.s || "").join("")).join("");
+    let phase = buildPhase();
+    let key = phase.rows.slice(0,3).map(row => row.map(p => p.s || "").join("")).join("|");
     let attempts = 0;
-    while (used.has(key) && attempts++ < 20) {
+    while (used.has(key) && attempts++ < 30) {
       phase = buildPhase();
-      key = phase.rows.map(row => row.map(p => p.s || "").join("")).join("");
+      key = phase.rows.slice(0,3).map(row => row.map(p => p.s || "").join("")).join("|");
     }
     used.add(key);
     return phase;
@@ -115,7 +114,7 @@ function renderEquation(parts) {
       span.textContent = part.s.repeat(part.n || 1);
       span.setAttribute("aria-label", `${part.n || 1} símbolo(s)`);
     } else if (part.op) {
-      span.className = "equals";
+      span.className = part.op === "=" ? "equals" : "operator";
       span.textContent = part.op;
     } else if (part.unknown) {
       span.textContent = "?";
@@ -190,7 +189,6 @@ function submitAnswer(event) {
   }, 650);
 }
 async function saveResult(result) {
-  // Sem backend, o jogo continua funcional e salva o placar apenas neste navegador.
   const local = JSON.parse(localStorage.getItem("symbolGameResults") || "[]");
   local.push(result);
   localStorage.setItem("symbolGameResults", JSON.stringify(local.slice(-100)));
@@ -214,7 +212,6 @@ async function finishGame(timedOut) {
   clearInterval(timerInterval);
   remaining = Math.max(0, TOTAL_TIME - Math.floor((Date.now() - startedAt) / 1000));
   const timeSeconds = TOTAL_TIME - remaining;
-  // Bônus de velocidade: até 100 pontos, proporcional ao tempo economizado.
   const speedBonus = Math.round((remaining / TOTAL_TIME) * 100);
   const total = points + speedBonus;
   const result = {
