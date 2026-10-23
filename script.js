@@ -44,38 +44,38 @@ function formatTime(seconds) {
   return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
 }
 
-// Monta desafios variados, mas com contas simples e resultados inteiros.
+// Monta desafios variados sem parênteses e com contas acessíveis.
 function buildPhase() {
   const [a, b, c] = shuffle(SYMBOLS).slice(0, 3);
-  const av = randomInt(2, 6);
-  const bv = randomInt(2, 6);
-  const cv = randomInt(1, 5);
+  const pattern = randomInt(0, 3);
+  let av = randomInt(2, 6);
+  let bv = randomInt(2, 6);
+  let cv = randomInt(1, 5);
   const aCount = randomInt(2, 4);
   const bCount = randomInt(2, 4);
-  const cCount = randomInt(2, 3);
 
-  // Escolhe uma expressão final que sempre usa os três símbolos.
-  // Os parênteses deixam a ordem das operações clara para quem está jogando.
-  const pattern = randomInt(0, 3);
   let finalParts;
   let answer;
 
   if (pattern === 0) {
-    // a + (b × quantidade) + c
-    answer = av + bv * bCount + cv;
-    finalParts = [{s:a,n:1},{op:"+"},{op:"("},{s:b,n:bCount},{op:"×"},{v:1},{op:")"},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
+    // Só adição: a + b + c
+    answer = av + bv + cv;
+    finalParts = [{s:a,n:1},{op:"+"},{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
   } else if (pattern === 1) {
-    // (a × b) + c
+    // Multiplicação e adição; nunca mistura multiplicação com divisão.
     answer = av * bv + cv;
-    finalParts = [{op:"("},{s:a,n:1},{op:"×"},{s:b,n:1},{op:")"},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
+    finalParts = [{s:a,n:1},{op:"×"},{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
   } else if (pattern === 2) {
-    // a + b + (c × quantidade)
-    answer = av + bv + cv * cCount;
-    finalParts = [{s:a,n:1},{op:"+"},{s:b,n:1},{op:"+"},{op:"("},{s:c,n:cCount},{op:"×"},{v:1},{op:")"},{op:"="},{unknown:true}];
+    // Subtração com resultado positivo ou zero.
+    cv = randomInt(1, Math.min(5, av + bv));
+    answer = av + bv - cv;
+    finalParts = [{s:a,n:1},{op:"+"},{s:b,n:1},{op:"−"},{s:c,n:1},{op:"="},{unknown:true}];
   } else {
-    // (a + b) × c
-    answer = (av + bv) * cv;
-    finalParts = [{op:"("},{s:a,n:1},{op:"+"},{s:b,n:1},{op:")"},{op:"×"},{s:c,n:1},{op:"="},{unknown:true}];
+    // Divisão exata e adição; escolhe valores para não gerar resto.
+    bv = randomInt(2, 3);
+    av = bv * randomInt(1, Math.floor(6 / bv));
+    answer = av / bv + cv;
+    finalParts = [{s:a,n:1},{op:"÷"},{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
   }
 
   return {
