@@ -44,50 +44,97 @@ function formatTime(seconds) {
   return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
 }
 
-// Monta desafios variados sem parênteses e com contas acessíveis.
+// Gera fases variadas: 3 ou 4 símbolos, sem parênteses e com resultados inteiros.
 function buildPhase() {
-  const [a, b, c] = shuffle(SYMBOLS).slice(0, 3);
-  const pattern = randomInt(0, 3);
-  let av = randomInt(2, 6);
-  let bv = randomInt(2, 6);
-  let cv = randomInt(1, 5);
-  const aCount = randomInt(2, 4);
-  const bCount = randomInt(2, 4);
+  const symbolCount = randomInt(3, 4);
+  const chosenSymbols = shuffle(SYMBOLS).slice(0, symbolCount);
+  const values = {};
+  chosenSymbols.forEach(symbol => { values[symbol] = randomInt(1, 4) * 2; });
 
-  let finalParts;
-  let answer;
+  // Cria uma sequência com operações simples. Multiplicação e divisão
+  // nunca aparecem juntas na mesma equação.
+  const makeOperations = () => {
+    const ops = Array.from({length: symbolCount - 1}, () => Math.random() < 0.5 ? "+" : "-");
+    const highChoice = randomInt(0, 2); // 0 = nenhuma, 1 = multiplicação, 2 = divisão
+    if (highChoice === 1) {
+      const position = randomInt(0, ops.length - 1);
+      ops[position] = "×";
+    } else if (highChoice === 2) {
+      const position = randomInt(0, ops.length - 1);
+      ops[position] = "÷";
+    }
+    return ops;
+  };
 
-  if (pattern === 0) {
-    // Só adição: a + b + c
-    answer = av + bv + cv;
-    finalParts = [{s:a,n:1},{op:"+"},{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
-  } else if (pattern === 1) {
-    // Multiplicação e adição; nunca mistura multiplicação com divisão.
-    answer = av * bv + cv;
-    finalParts = [{s:a,n:1},{op:"×"},{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
-  } else if (pattern === 2) {
-    // Subtração com resultado positivo ou zero.
-    cv = randomInt(1, Math.min(5, av + bv));
-    answer = av + bv - cv;
-    finalParts = [{s:a,n:1},{op:"+"},{s:b,n:1},{op:"−"},{s:c,n:1},{op:"="},{unknown:true}];
-  } else {
-    // Divisão exata e adição; escolhe valores para não gerar resto.
-    bv = randomInt(2, 3);
-    av = bv * randomInt(1, Math.floor(6 / bv));
-    answer = av / bv + cv;
-    finalParts = [{s:a,n:1},{op:"÷"},{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{unknown:true}];
+  const calculate = (nums, ops) => {
+    const reducedNums = [nums[0]];
+    const reducedOps = [];
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      const next = nums[i + 1];
+      if (op === "×") reducedNums[reducedNums.length - 1] *= next;
+      else if (op === "÷") {
+        const current = reducedNums[reducedNums.length - 1];
+        if (next === 0 || current % next !== 0) return null;
+        reducedNums[reducedNums.length - 1] = current / next;
+      } else {
+        reducedOps.push(op);
+        reducedNums.push(next);
+      }
+    }
+    let result = reducedNums[0];
+    for (let i = 0; i < reducedOps.length; i++) {
+      result = reducedOps[i] === "+" ? result + reducedNums[i + 1] : result - reducedNums[i + 1];
+    }
+    return Number.isInteger(result) && result >= 0 ? result : null;
+  };
+
+  let operations = [];
+  let answer = null;
+  let nums = chosenSymbols.map(symbol => values[symbol]);
+
+  // Para divisão, escolhe valores pares que dividam exatamente.
+  // Tenta várias combinações para garantir um resultado inteiro e não negativo.
+  for (let attempt = 0; attempt < 100; attempt++) {
+    chosenSymbols.forEach(symbol => { values[symbol] = randomInt(1, 4) * 2; });
+    operations = makeOperations();
+    const divisionIndex = operations.indexOf("÷");
+    if (divisionIndex !== -1) {
+      const pairs = [[4, 2], [6, 2], [8, 2], [8, 4], [4, 4], [2, 2]];
+      const pair = pairs[randomInt(0, pairs.length - 1)];
+      values[chosenSymbols[divisionIndex]] = pair[0];
+      values[chosenSymbols[divisionIndex + 1]] = pair[1];
+    }
+    nums = chosenSymbols.map(symbol => values[symbol]);
+    answer = calculate(nums, operations);
+    if (answer !== null) break;
   }
+
+  // Fallback seguro: soma de números pares, sempre inteira e não negativa.
+  if (answer === null) {
+    operations = Array.from({length: symbolCount - 1}, () => "+");
+    chosenSymbols.forEach(symbol => { values[symbol] = randomInt(1, 4) * 2; });
+    nums = chosenSymbols.map(symbol => values[symbol]);
+    answer = calculate(nums, operations);
+  }
+
+  const rows = chosenSymbols.map(symbol => {
+    const count = randomInt(2, 4);
+    return [{s:symbol,n:count},{op:"="},{v:values[symbol] * count}];
+  });
+  const finalParts = [];
+  chosenSymbols.forEach((symbol, index) => {
+    if (index > 0) finalParts.push({op:operations[index - 1]});
+    finalParts.push({s:symbol,n:1});
+  });
+  finalParts.push({op:"="}, {unknown:true});
+  rows.push(finalParts);
 
   return {
     answer,
-    rows: [
-      [{s:a,n:aCount},{op:"="},{v:av*aCount}],
-      [{s:a,n:1},{op:"+"},{s:b,n:2},{op:"="},{v:av+2*bv}],
-      [{s:b,n:1},{op:"+"},{s:c,n:1},{op:"="},{v:bv+cv}],
-      finalParts
-    ],
-    symbols: {a,b,c},
-    values: {a:av,b:bv,c:cv}
+    rows,
+    symbols: Object.fromEntries(chosenSymbols.map(symbol => [symbol, symbol])),
+    values: {...values}
   };
 }
 function generateGame() {
